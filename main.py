@@ -1,6 +1,6 @@
-from Module.openAI import translate
+from Module.openAI import make_analysis
 
 
-respont = translate()
+respont = make_analysis()
 
 print(respont)
