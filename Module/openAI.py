@@ -7,7 +7,8 @@ from Module.prompt_template import prompt
 os.environ["OPENAI_API_KEY"]
 
 model = ChatOpenAI(
-    model="gpt-4")
+    model="gpt-4",
+    temperature=0,)
 
 parser = StrOutputParser()
 
@@ -36,7 +37,7 @@ def make_analysis(
     data = {indicador["nombre"]: indicador["prom_score"] for indicador in data.get("indicador", [])}
 
 
-    
+    print(data)
     promptTemplate = prompt()
 
     
