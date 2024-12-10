@@ -3,6 +3,7 @@ from typing import Literal
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from Module.prompt_template import prompt
+import json
 
 os.environ["OPENAI_API_KEY"]
 
@@ -42,9 +43,11 @@ def make_analysis(
 
     
     chain = promptTemplate | model | parser
-    return chain.invoke({
+    respont= chain.invoke({
         'type_report':type_report[report],
         'iteams':data.keys(),
         'data':data
 
     })
+
+    return json.dumps(respont, ensure_ascii=False)
