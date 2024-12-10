@@ -16,7 +16,7 @@ parser = StrOutputParser()
 
 def make_analysis(
         data:dict, 
-        report:Literal['retroalimentación','individual','departamento','institucional','regional','nacional'],referencia:Literal['constructo','indicador']) -> str:
+        report:Literal['retroalimentación','individual','departamento','institucional','regional','nacional'],referencia:Literal['constructo','indicador']) -> json:
     
     if not isinstance(data, dict):
         raise TypeError("El parámetro 'data' debe ser un diccionario.")
@@ -43,11 +43,14 @@ def make_analysis(
 
     
     chain = promptTemplate | model | parser
-    respont= chain.invoke({
+    response= chain.invoke({
         'type_report':type_report[report],
         'iteams':data.keys(),
         'data':data
 
     })
+    response_dict = json.loads(response)
+    with open('salida.json', 'w', encoding='utf-8') as file:
+        json.dump(response_dict, file, indent=2, ensure_ascii=False)
 
-    return json.dumps(respont, ensure_ascii=False)
+    return response_dict

@@ -1,4 +1,5 @@
 from Module.openAI import make_analysis
+import json
 
 data = {
     "informacion_personal": {
@@ -499,6 +500,7 @@ data = {
         }
     ]
 }
-respont = make_analysis(data= data, report = 'regional', referencia = 'constructo')
+response = make_analysis(data= data, report = 'regional', referencia = 'constructo')
 
-print(respont)
+
+print(response)
