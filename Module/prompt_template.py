@@ -1,63 +1,135 @@
-from langchain_core.prompts import ChatPromptTemplate
+from langchain.chains import LLMChain, SequentialChain
+from langchain.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+  # Prompt para analizar competencias
+def prompt(flag = False, data = None, type_report = None): 
+  llm = ChatOpenAI(temperature=0.3, model="gpt-4")
+  if flag: 
+    competence_prompt = ChatPromptTemplate.from_template(
+        """
+        Actúa como experto en análisis de competencias. Con base en los puntajes proporcionados (de 0 a 100), identifica las fortalezas y áreas de oportunidad.
 
-system_template = """
-Actúa como si fueras asistente del Departamento de Psicología de una Institución Educativa a nivel nacional. 
-Analiza los datos psicológicos proporcionados y genera un informe con base en ellos, teniendo en cuenta lo siguiente:
-- **Retroalimentación**: Informe dirigido al tutor. Usa un lenguaje en primera persona del singular. No menciones puntajes explícitos.
-- **Reporte individual**: Informe dirigido a un superior sobre un tutor específico. Usa un lenguaje en tercera persona del singular. Lo lee el encargado del tutor. Puede decir El tutor sin mencionar su genero.
-- **Reporte departamento**: Promedio de todos los tutores de un departamento. Lo lee el encargado del programa educativo. Menciona los tutores del programa educativo.
-- **Reporte institucional**: Promedio de todos los tutores del instituto. Lo lee el encargado del instituto. Menciona  los tutores del instituto.
-- **Reporte regional**: Promedio de todos los tutores de una región. Lo lee el encargado nacional. Mencionar los tutores de la región.
-- **Reporte nacional**: Promedio de todos los tutores del país. Lo lee el encargado nacional. Menciona los turtores a nivel país
+        Datos:
+        {data}
 
+        Genera la respuesta en formato JSON con las claves:
+        - "fortaleza": Detalla las competencias más altas y su impacto.
+        - "oportunidad": Describe las competencias más bajas y cómo mejorarlas.
+        """
+    )
+    final_report_prompt = ChatPromptTemplate.from_template(
+        """
+        Combina los siguientes análisis en un informe estructurado para {type_report}:
 
-Consideraciones:
-El tutor es una persona que realiza funciones docentes, pero sobre todo proceso de acompañamiento grupal o individual que un tutor brinda al estudiante durante su estancia en el Instituto, con el propósito de contribuir a su formación integral e incidir en las metas institucionales relacionadas con la calidad educativa; elevar los índices de eficiencia terminal, reducir los índices de reprobación y deserción.
-"""
+        - Fortalezas y áreas de oportunidad de competencias: {competence_analysis}
 
-prompt_templates_f_o = """Genera {type_report}(tipo de reporte) en base a los siguientes datos, que van del 0 al 100:
+        Devuelve la respuesta en formato JSON con las claves:
+        - "fortaleza": Incluye fortalezas combinadas de los análisis.
+        - "oportunidad": Incluye áreas de oportunidad combinadas.
+        """
+    )
+    # Cadena para análisis de competencias
+    competence_chain = LLMChain(llm=llm, prompt=competence_prompt)
+    # Cadena final para generar el reporte completo
+    final_chain = SequentialChain(
+        chains=[competence_chain],
+        input_variables=["data", "type_report"],
+        output_variables=["competence_analysis"],
+        llm=llm,
+        final_prompt=final_report_prompt
+    )
+    competence_data = data
+    competence_analysis = competence_chain.run(data=competence_data)
+    report = final_chain.run(
+        data=data,
+        type_report=type_report,
+        competence_analysis=competence_analysis,
+    )
+  else:
+    competence_prompt = ChatPromptTemplate.from_template(
+        """
+        Actúa como experto en análisis de competencias. Con base en los puntajes proporcionados (de 0 a 100), identifica las fortalezas y áreas de oportunidad.
 
-Identificadores: {iteams}
+        Datos:
+        {data}
 
-Datos:
-{data}
+        Genera la respuesta en formato JSON con las claves:
+        - "fortaleza": Detalla las competencias más altas y su impacto.
+        - "oportunidad": Describe las competencias más bajas y cómo mejorarlas.
+        """
+    )
+  # Prompt para analizar personalidad
+    personality_prompt = ChatPromptTemplate.from_template(
+        """
+        Actúa como psicólogo especializado en análisis de personalidad. Con base en los puntajes proporcionados (de 0 a 100), genera un resumen profesional sobre las características predominantes de la persona.
 
-Haz un análisis y genera un reporte según el tipo de reporte. Considera la persona que va leer el reporte. Regresa la respuesta en formato JSON, con los datos que consideres necesarios: fortalezas y Areas de oportunidad. Utiliza formato markdown para dar formato en negritas los indentificadores.
+        Datos de personalidad:
+        {data}
 
-Siempre genera la respuesta en **formato JSON** con las claves `fortaleza` y `oportunidad`. Usa formato Markdown para resaltar los identificadores con **negritas**. 
-Ejemplo de respuesta:
+        Devuelve un resumen breve en formato texto.
+        """
+    )
+    
 
-{{
-  "fortaleza": "Descripción detallada y extensa de las fortalezas.",
-  "oportunidad": "Descripción detallada y extensa de las áreas de oportunidad."
-}}
-  
-"""
+    # Prompt para analizar inteligencias múltiples
+    intelligence_prompt = ChatPromptTemplate.from_template(
+        """
+        Actúa como experto en teorías de inteligencias múltiples. Con base en los puntajes proporcionados (de 0 a 100), describe cuáles son las inteligencias más desarrolladas y las menos evidentes de la persona.
 
-prompt_templates_p_i = """Genera {type_report}(tipo de reporte) en base a los siguientes datos, que van del 0 al 100:
+        Datos:
+        {data}
 
-Identificadores: {iteams}
+        Devuelve un resumen breve en formato texto.
+        """
+    )
 
-Datos:
-{data}
+    # Prompt para combinar todos los análisis
+    final_report_prompt = ChatPromptTemplate.from_template(
+        """
+        Combina los siguientes análisis en un informe estructurado para {type_report}:
 
-Resumen del perfil, considerando los datos proporcionados. Regresa la respuesta en formato JSON, con los datos que consideres necesarios.  No hables de fortalezas ni debilidades, sólo habla de la personalidad y las inteligencias multiples 
-Ejemplo de respuesta:
+        - Fortalezas y áreas de oportunidad de competencias: {competence_analysis}
+        - Resumen de personalidad: {personality_analysis}
+        - Resumen de inteligencias múltiples: {intelligence_analysis}
 
-{{
-  "perfil": "Descripción detallada y extensa del perfil."
-}}
-  
-"""
+        Devuelve la respuesta en formato JSON con las claves:
+        - "fortaleza": Incluye fortalezas combinadas de los análisis.
+        - "oportunidad": Incluye áreas de oportunidad combinadas.
+        """
+    )
+    # **3. Define las cadenas**
+    # Cadena para análisis de competencias
+    competence_chain = LLMChain(llm=llm, prompt=competence_prompt)
+    personality_chain = LLMChain(llm=llm, prompt=personality_prompt)
+    intelligence_chain = LLMChain(llm=llm, prompt=intelligence_prompt)
 
-def prompt(i : int) -> ChatPromptTemplate:
-    if i == 1:
-        prompt_template = ChatPromptTemplate.from_messages(
-      [("system", system_template), ("user", prompt_templates_p_i)]
-      )
-    else:
-      prompt_template = ChatPromptTemplate.from_messages(
-      [("system", system_template), ("user", prompt_templates_f_o)]
-      )
+    # Cadena final para generar el reporte completo
+    final_chain = SequentialChain(
+        chains=[competence_chain, personality_chain, intelligence_chain],
+        input_variables=["data", "type_report"],
+        output_variables=["competence_analysis", "personality_analysis", "intelligence_analysis"],
+        llm=llm,
+        final_prompt=final_report_prompt
+    )
+        # Análisis de competencias
+    competence_data = data
+    competence_analysis = competence_chain.run(data=competence_data)
 
-    return prompt_template
+    # Análisis de personalidad
+    personality_data = data
+    personality_analysis = personality_chain.run(data=personality_data)
+
+    # Análisis de inteligencias múltiples
+    intelligence_data = data
+    intelligence_analysis = intelligence_chain.run(data=intelligence_data)
+
+    # Generación del reporte final
+    report = final_chain.run(
+        data=data,
+        type_report=type_report,
+        competence_analysis=competence_analysis,
+        personality_analysis=personality_analysis,
+        intelligence_analysis=intelligence_analysis
+    )
+
+  return report
