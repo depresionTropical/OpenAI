@@ -4,6 +4,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from Module.prompt_template import prompt
 import json
+import time
 
 os.environ["OPENAI_API_KEY"]
 
@@ -16,7 +17,7 @@ parser = StrOutputParser()
 
 def make_analysis(
         data:dict, 
-        report:Literal['retroalimentación','individual','departamento','institucional','regional','nacional'],referencia:Literal['constructo','indicador']) -> json:
+        report:Literal['retroalimentación','individual','departamento','institucional','regional','nacional'],referencia:Literal['constructo','indicador']) -> dict:
     
     if not isinstance(data, dict):
         raise TypeError("El parámetro 'data' debe ser un diccionario.")
@@ -36,21 +37,27 @@ def make_analysis(
         'nacional':'reporte nacional'
     }
     data = {indicador["nombre"]: indicador["prom_score"] for indicador in data.get("indicador", [])}
+    n = 1 if report == 'retroalimentación' else 2
+    response_dict = {}
+    for i in range(n):    
+        promptTemplate = prompt(i)
 
+        # Iniciar cronómetro
+        start_time = time.time()
 
-    print(data)
-    promptTemplate = prompt()
+        chain = promptTemplate | model | parser
+        response = chain.invoke({
+            'type_report': type_report[report],
+            'iteams': data.keys(),
+            'data': data
+        })
+        # Detener cronómetro
+        end_time = time.time()
+        elapsed_time = end_time - start_time
 
-    
-    chain = promptTemplate | model | parser
-    response= chain.invoke({
-        'type_report':type_report[report],
-        'iteams':data.keys(),
-        'data':data
+        # Mostrar tiempo de respuesta
+        print(f"Tiempo de respuesta: {elapsed_time:.2f} segundos")
 
-    })
-    response_dict = json.loads(response)
-    with open('salida.json', 'w', encoding='utf-8') as file:
-        json.dump(response_dict, file, indent=2, ensure_ascii=False)
+        response_dict.update(json.loads(response))
 
     return response_dict
