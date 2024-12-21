@@ -37,13 +37,16 @@ def make_analysis(
         'nacional':'reporte nacional'
     }
     data = {indicador["nombre"]: indicador["prom_score"] for indicador in data.get("indicador", [])}
-    n = 1 if report == 'retroalimentación' else 2
+    # n = 1 if report == 'retroalimentación' else 2
+    n = 2
+
+
     response_dict = {}
     for i in range(n):    
         promptTemplate = prompt(i)
 
         # Iniciar cronómetro
-        start_time = time.time()
+        # start_time = time.time()
 
         chain = promptTemplate | model | parser
         response = chain.invoke({
@@ -51,13 +54,14 @@ def make_analysis(
             'iteams': data.keys(),
             'data': data
         })
-        # Detener cronómetro
-        end_time = time.time()
-        elapsed_time = end_time - start_time
+        # # Detener cronómetro
+        # end_time = time.time()
+        # elapsed_time = end_time - start_time
 
-        # Mostrar tiempo de respuesta
-        print(f"Tiempo de respuesta: {elapsed_time:.2f} segundos")
+        # # Mostrar tiempo de respuesta
+        # print(f"Tiempo de respuesta: {elapsed_time:.2f} segundos")
 
         response_dict.update(json.loads(response))
+    # print(type(response_dict))
 
     return response_dict
